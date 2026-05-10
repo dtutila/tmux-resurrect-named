@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Save the current tmux session as a named snapshot. Args: [name]
 set -euo pipefail
 
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,7 +24,7 @@ if [ ! -x "$resurrect_scripts/save.sh" ]; then
     exit 1
 fi
 
-# Trigger a fresh full snapshot via vanilla resurrect.
+# Trigger a fresh full snapshot via vanilla resurrect; ignore failures so we still try to filter.
 "$resurrect_scripts/save.sh" quiet >/dev/null 2>&1 || true
 
 last_link="$resurrect_dir/last"
@@ -35,6 +36,7 @@ fi
 target=$(named_snapshot_path "$name")
 filter_snapshot_by_session "$last_link" "$current_session" "$target"
 
+# Empty result means the session had no panes/windows in the snapshot — drop the file.
 count=$(wc -l < "$target" | tr -d ' ')
 if [ "${count:-0}" -eq 0 ]; then
     rm -f "$target"

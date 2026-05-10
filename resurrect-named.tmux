@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Plugin entry point: sourced by TPM (or `run-shell`) on tmux startup.
 
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -7,6 +8,7 @@ restore_key=$(tmux show-option -gqv "@resurrect-named-restore-key")
 [ -z "$save_key" ] && save_key="S"
 [ -z "$restore_key" ] && restore_key="R"
 
+# `-I "#S"` pre-fills the prompt with the current session name as the default.
 tmux bind-key "$save_key" command-prompt -I "#S" -p "Save session as:" \
     "run-shell '$CURRENT_DIR/scripts/save_named.sh \"%%\"'"
 

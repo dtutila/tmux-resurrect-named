@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+# Shared helpers sourced by save/restore/auto-split scripts.
 
+# Snapshot directory; mirrors tmux-resurrect's @resurrect-dir so both plugins agree.
 get_resurrect_dir() {
     local dir
     dir=$(tmux show-option -gqv "@resurrect-dir")
@@ -7,6 +9,7 @@ get_resurrect_dir() {
     eval echo "$dir"
 }
 
+# Path to vanilla tmux-resurrect's scripts; overridable for non-TPM installs.
 get_resurrect_scripts_dir() {
     local override
     override=$(tmux show-option -gqv "@resurrect-named-scripts-dir")
@@ -32,6 +35,7 @@ display_message() {
 # Args: <input> <session_name> <output>
 filter_snapshot_by_session() {
     local input="$1" session="$2" output="$3"
+    # Rewrite `state` to point at <session> so restore.sh attaches to the right one.
     awk -F'\t' -v s="$session" '
         BEGIN { OFS = "\t" }
         $1 == "pane"   && $2 == s { print; next }
@@ -41,7 +45,7 @@ filter_snapshot_by_session() {
     ' "$input" > "$output"
 }
 
-# Strip filesystem-unsafe chars from a name.
+# Strip filesystem-unsafe chars from a name (snapshot filename is derived from it).
 sanitize_name() {
     printf '%s' "$1" | tr -c 'A-Za-z0-9._-' '_' | sed 's/^_*//; s/_*$//'
 }

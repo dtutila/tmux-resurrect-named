@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Pick a named snapshot via fzf and restore it (or switch to it if already running).
 set -euo pipefail
 
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -72,6 +73,7 @@ fi
 last_link="$resurrect_dir/last"
 original=""
 backup=""
+# Stash the current `last` pointer; restore.sh always reads it, so we re-aim it temporarily.
 if [ -L "$last_link" ]; then
     original=$(readlink "$last_link")
 elif [ -e "$last_link" ]; then
@@ -86,7 +88,7 @@ set +e
 status=$?
 set -e
 
-# Restore previous `last` pointer.
+# Restore previous `last` pointer so vanilla resurrect's history isn't disturbed.
 if [ -n "$original" ]; then
     ln -sfn "$original" "$last_link"
 elif [ -n "$backup" ] && [ -e "$backup" ]; then
