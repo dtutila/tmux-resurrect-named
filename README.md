@@ -65,6 +65,18 @@ Reload tmux config: `tmux source-file ~/.tmux.conf`.
 | `prefix + S` | Prompt for a name and save the **current** session as a named snapshot. The default name is the session's own name — press Enter to accept. |
 | `prefix + R` | Open an `fzf` picker of all named snapshots; selecting one restores it. If a live session with that name already exists, switches to it instead. |
 
+Inside the `prefix + R` picker:
+
+| Key | Action |
+|---|---|
+| `Enter` | Restore the snapshot, or switch to it if it's already live. |
+| `ctrl-d` | Delete the highlighted snapshot (asks `y/N` first). |
+| `ctrl-e` | Rename the highlighted snapshot (prompts for a new name). |
+| `ctrl-x` | Kill the highlighted live session (asks `y/N` first; no-op if not live). |
+| `alt-h` | Toggle between **named-only** (default) and **all** snapshots. tmux gives unnamed sessions numeric names (`0`, `1`, …); those snapshots are hidden by default to keep the picker focused on names you chose. The prompt shows the current mode. |
+
+A `●` next to a row means a live session with that name exists. The right-side preview pane shows the snapshot's mtime, size, window/pane count, and the first pane's command.
+
 Snapshots are stored alongside tmux-resurrect's own data, as `session_<name>.txt` in `@resurrect-dir` (default: `~/.local/share/tmux/resurrect`).
 
 ## Configuration
@@ -77,6 +89,7 @@ All options are tmux user-options set with `set -g`.
 | `@resurrect-named-restore-key` | `R` | Key (after `prefix`) bound to restore. |
 | `@resurrect-named-auto-split` | _(off)_ | Set to `on` to start the background daemon that splits tmux-resurrect's snapshot into per-session files when it changes. |
 | `@resurrect-named-auto-split-interval` | `30` | Poll interval in seconds for the auto-split daemon. |
+| `@resurrect-named-auto-save-on-switch` | _(off)_ | Set to `on` to automatically save the current session (under its own name) before the picker switches to or restores another. Handy if you want hands-off snapshotting when hopping between sessions. |
 | `@resurrect-named-scripts-dir` | `~/.tmux/plugins/tmux-resurrect/scripts` | Override the path to tmux-resurrect's scripts directory (e.g. if installed via Nix or a non-TPM location). |
 | `@resurrect-dir` | `~/.local/share/tmux/resurrect` | Inherited from tmux-resurrect; this plugin reads/writes from the same directory. |
 
@@ -94,6 +107,18 @@ set -g @resurrect-named-auto-split-interval '60'
 - **Save** — calls `tmux-resurrect/scripts/save.sh` to produce a fresh full snapshot, then filters it down to lines (`pane`, `window`, `state`, `grouped_session`) belonging to the current session, and writes the result to `session_<name>.txt`.
 - **Restore** — temporarily points tmux-resurrect's `last` symlink at the chosen `session_<name>.txt`, runs `tmux-resurrect/scripts/restore.sh`, then restores the original `last` pointer. tmux-resurrect itself does the actual session/window/pane recreation.
 - **Auto-split** — a background poller watches the mtime of `last` and, when it changes, partitions it into per-session files. One instance per tmux server, guarded by a PID file.
+
+## Versioning
+
+This plugin follows [Semantic Versioning](https://semver.org/) via `vX.Y.Z` git tags, matching the convention used by [tmux-resurrect], [tmux-continuum], and [TPM]. See [`CHANGELOG.md`](CHANGELOG.md) for release notes.
+
+To pin to a specific release with TPM:
+
+```tmux
+set -g @plugin 'dtutila/tmux-resurrect-named#v0.1.0'
+```
+
+Without `#tag`, TPM tracks the default branch.
 
 ## Troubleshooting
 

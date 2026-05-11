@@ -34,14 +34,23 @@ if [ ! -e "$last_link" ]; then
 fi
 
 target=$(named_snapshot_path "$name")
-filter_snapshot_by_session "$last_link" "$current_session" "$target"
+existed=0
+[ -e "$target" ] && existed=1
 
-# Empty result means the session had no panes/windows in the snapshot — drop the file.
-count=$(wc -l < "$target" | tr -d ' ')
-if [ "${count:-0}" -eq 0 ]; then
-    rm -f "$target"
+# Write to a tmp file first so a failed/empty filter doesn't clobber an existing snapshot.
+tmp="${target}.tmp.$$"
+trap 'rm -f "$tmp"' EXIT
+filter_snapshot_by_session "$last_link" "$current_session" "$tmp"
+
+if [ ! -s "$tmp" ]; then
+    rm -f "$tmp"
     display_message "resurrect-named: nothing to save for session '$current_session'"
     exit 1
 fi
 
-display_message "resurrect-named: saved '$current_session' as '$name' ($count lines)"
+mv -f "$tmp" "$target"
+
+read -r windows panes < <(count_snapshot_units "$target")
+suffix=""
+[ "$existed" = "1" ] && suffix=" (replaced)"
+display_message "resurrect-named: saved '$current_session' as '$name' — ${windows} win, ${panes} pane(s)${suffix}"
