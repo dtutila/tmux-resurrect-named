@@ -44,9 +44,9 @@ cmd_list() {
         fi
         mtime=$(date -r "$f" '+%Y-%m-%d %H:%M' 2>/dev/null || echo "")
         if is_session_live "$name"; then
-            marker="●"
+            marker=$'\e[32m●\e[0m '
         else
-            marker=" "
+            marker="  "
         fi
         printf '%s\t%s\t%s\n' "$name" "$mtime" "$marker"
     done
@@ -279,10 +279,7 @@ cmd_picker() {
     fi
 
     if ! command -v fzf-tmux >/dev/null 2>&1; then
-        "$CURRENT_DIR/ensure_fzf.sh" || true
-    fi
-    if ! command -v fzf-tmux >/dev/null 2>&1; then
-        display_message "resurrect-named: fzf-tmux not installed (install 'fzf')"
+        display_message "resurrect-named: fzf-tmux not found — install 'fzf' (e.g. pacman/apt/dnf/brew install fzf)"
         exit 1
     fi
 
@@ -321,6 +318,7 @@ cmd_picker() {
     local selection fzf_status
     set +e
     selection=$(fzf-tmux -p 80%,60% \
+        --ansi \
         --delimiter=$'\t' \
         --with-nth=3,1,2 \
         --prompt="$prompt_label" \

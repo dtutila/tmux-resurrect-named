@@ -9,7 +9,6 @@ Vanilla tmux-resurrect saves and restores the entire tmux server as one snapshot
 - `prefix + S` — save the current session under a name you choose (defaults to the session's own name).
 - `prefix + R` — open an `fzf-tmux` picker listing all named snapshots; selecting one restores it (or switches to it if it's already live).
 - Optional background daemon that auto-splits tmux-resurrect's snapshot (e.g. one written by [tmux-continuum]) into per-session files, so saves stay current without you pressing anything.
-- Best-effort `fzf` install via your system package manager if it's missing.
 
 ## Requirements
 
@@ -17,7 +16,7 @@ Vanilla tmux-resurrect saves and restores the entire tmux server as one snapshot
 
 - **`tmux` ≥ 2.4** — needed for the `command-prompt -I` default-input syntax used by the save binding.
 - **[tmux-resurrect]** — this plugin is a wrapper, not a replacement. It shells out to tmux-resurrect's `save.sh` and `restore.sh` to do the actual snapshotting. Install it via TPM or manually under `~/.tmux/plugins/tmux-resurrect`. If it lives elsewhere, set `@resurrect-named-scripts-dir`.
-- **`fzf`** with the `fzf-tmux` wrapper — used by the restore picker. The plugin will best-effort install it on first restore via `pacman` / `apt-get` / `dnf` / `zypper` / `brew`, but only if non-interactive `sudo` is available; otherwise install it yourself.
+- **`fzf`** with the `fzf-tmux` wrapper — used by the restore picker. Install via your system package manager (`pacman -S fzf`, `apt install fzf`, `dnf install fzf`, `brew install fzf`, …). On most distros the `fzf` package ships `fzf-tmux` on `$PATH`; on a few (older Debian) you may need to symlink it from `/usr/share/doc/fzf/examples/fzf-tmux`.
 - **`bash`** ≥ 4 — scripts use `[[`, arrays, `shopt -s nullglob`, and `set -euo pipefail`.
 - **`awk`** — used to filter snapshots by session (any POSIX awk works: gawk, mawk, BSD awk).
 - **`coreutils`** — `stat`, `wc`, `cut`, `sort`, `tr`, `sed`, `date`, `ln`, `mv`, `rm` (the auto-split daemon falls back to BSD `stat -f` if GNU `stat -c` isn't available, so macOS works).
@@ -25,7 +24,6 @@ Vanilla tmux-resurrect saves and restores the entire tmux server as one snapshot
 **Optional**
 
 - **[tmux-continuum]** — pairs well with `@resurrect-named-auto-split on`: continuum periodically refreshes tmux-resurrect's `last` snapshot, and the auto-split daemon then partitions it into per-session files automatically.
-- **`sudo`** with passwordless config — only needed if you want the `fzf` auto-install to work non-interactively.
 
 **Supported platforms**
 
@@ -123,7 +121,7 @@ Without `#tag`, TPM tracks the default branch.
 ## Troubleshooting
 
 - **`tmux-resurrect not found at …`** — set `@resurrect-named-scripts-dir` to your install path.
-- **`fzf-tmux not installed`** — install `fzf` manually (the auto-install only works with non-interactive `sudo`).
+- **`fzf-tmux not installed`** — install `fzf` via your system package manager.
 - **Nothing in the picker** — you haven't saved anything yet, or `@resurrect-dir` differs from where snapshots live.
 - **Auto-split doesn't run** — it exits silently if another instance is already running for this tmux server. Remove `~/.local/share/tmux/resurrect/.named-split.pid` if you suspect a stale lock.
 

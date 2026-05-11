@@ -20,6 +20,11 @@ This project follows [Semantic Versioning](https://semver.org/) and the TPM-ecos
   - Success message now reports window/pane counts instead of raw line counts, and notes when an existing snapshot was replaced.
   - Snapshots are written via a tmp-file + atomic `mv`, so a failed/empty filter no longer clobbers the previous snapshot.
 - New option `@resurrect-named-auto-save-on-switch` (off by default) — when on, the picker auto-saves the current session under its own name before switching/restoring.
+- Picker live marker is now green (ANSI 32), with a trailing space so names
+  always sit a column away from the dot.
+- Removed the best-effort `fzf` auto-install on first restore. The plugin now
+  prints a one-line install hint instead of attempting `sudo` package-manager
+  invocations behind your back. Install `fzf` via your package manager.
 - Internals:
   - `last` symlink swap during restore is now signal-safe (trapped on INT/TERM/HUP).
   - `eval echo` in tmux-option expansion replaced with safe tilde expansion.

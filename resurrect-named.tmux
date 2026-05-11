@@ -21,5 +21,5 @@ if [ "$auto_split" = "on" ]; then
 fi
 
 if ! command -v fzf-tmux >/dev/null 2>&1; then
-    tmux display-message "resurrect-named: fzf-tmux missing — auto-install attempted on first restore"
+    tmux display-message "resurrect-named: fzf-tmux missing — install 'fzf' to use the restore picker"
 fi

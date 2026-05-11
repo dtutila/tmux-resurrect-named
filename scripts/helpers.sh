@@ -88,7 +88,7 @@ summarize_snapshot() {
     local mtime size live_marker
 
     if is_session_live "$name"; then
-        live_marker="● live"
+        live_marker=$'\e[32m●\e[0m live'
     else
         live_marker="snapshot only"
     fi
