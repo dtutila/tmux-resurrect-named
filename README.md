@@ -14,9 +14,9 @@ Vanilla tmux-resurrect saves and restores the entire tmux server as one snapshot
 
 **Mandatory**
 
-- **`tmux` ≥ 2.4** — needed for the `command-prompt -I` default-input syntax used by the save binding.
+- **`tmux` ≥ 3.2** — the restore picker uses `fzf-tmux -p`, which requires tmux's `display-popup` (added in 3.2). The save binding uses `command-prompt -I` (added in 2.4), so 3.2 covers everything.
 - **[tmux-resurrect]** — this plugin is a wrapper, not a replacement. It shells out to tmux-resurrect's `save.sh` and `restore.sh` to do the actual snapshotting. Install it via TPM or manually under `~/.tmux/plugins/tmux-resurrect`. If it lives elsewhere, set `@resurrect-named-scripts-dir`.
-- **`fzf`** with the `fzf-tmux` wrapper — used by the restore picker. Install via your system package manager (`pacman -S fzf`, `apt install fzf`, `dnf install fzf`, `brew install fzf`, …). On most distros the `fzf` package ships `fzf-tmux` on `$PATH`; on a few (older Debian) you may need to symlink it from `/usr/share/doc/fzf/examples/fzf-tmux`.
+- **`fzf` ≥ 0.50** with the `fzf-tmux` wrapper — the picker uses `transform`, `transform-prompt`, and `transform-header` actions (all available in 0.50+). Install via your system package manager (`pacman -S fzf`, `apt install fzf`, `dnf install fzf`, `brew install fzf`, …). On a few older distros (Debian bullseye, Ubuntu 22.04) the packaged fzf is too old — use [the upstream installer](https://github.com/junegunn/fzf#using-git) instead. On most distros the `fzf` package ships `fzf-tmux` on `$PATH`; on older Debian you may need to symlink it from `/usr/share/doc/fzf/examples/fzf-tmux`.
 - **`bash`** ≥ 4 — scripts use `[[`, arrays, `shopt -s nullglob`, and `set -euo pipefail`.
 - **`awk`** — used to filter snapshots by session (any POSIX awk works: gawk, mawk, BSD awk).
 - **`coreutils`** — `stat`, `wc`, `cut`, `sort`, `tr`, `sed`, `date`, `ln`, `mv`, `rm` (the auto-split daemon falls back to BSD `stat -f` if GNU `stat -c` isn't available, so macOS works).
@@ -55,6 +55,24 @@ run-shell ~/.tmux/plugins/tmux-resurrect-named/resurrect-named.tmux
 ```
 
 Reload tmux config: `tmux source-file ~/.tmux.conf`.
+
+## First run
+
+After installing on a new machine, walk through this once to confirm everything's wired up:
+
+1. **Reload tmux config** (or restart tmux) so the bindings load:
+   ```sh
+   tmux source-file ~/.tmux.conf
+   ```
+   With TPM, `prefix + I` fetches plugins and sources them in one step.
+
+2. **Save your first snapshot.** In any tmux session, press `prefix + S`. The prompt pre-fills with the current session's name; press Enter to accept (or edit, then Enter). The status line should report something like `saved 'main' as 'main' — 2 win, 5 pane(s)`.
+
+3. **Open the picker.** Press `prefix + R`. An `fzf-tmux` popup appears listing your snapshots.
+
+   > **First-time gotcha:** if you started tmux with `tmux` (no session name), tmux auto-names it `0`, `1`, … and the picker hides numeric names by default. Press `alt-h` inside the picker to show them, or save with an explicit name next time.
+
+If `prefix + R` does nothing, opens an empty popup, or flashes and closes, see [Troubleshooting](#troubleshooting) below.
 
 ## Usage
 
@@ -121,9 +139,18 @@ Without `#tag`, TPM tracks the default branch.
 ## Troubleshooting
 
 - **`tmux-resurrect not found at …`** — set `@resurrect-named-scripts-dir` to your install path.
-- **`fzf-tmux not installed`** — install `fzf` via your system package manager.
-- **Nothing in the picker** — you haven't saved anything yet, or `@resurrect-dir` differs from where snapshots live.
+- **`fzf-tmux not found`** — install `fzf` via your system package manager (`apt`, `dnf`, `pacman`, `brew`, …). If the packaged version is `< 0.50`, install from upstream instead.
+- **Picker shows "no snapshots yet"** — you haven't saved anything yet. Press `prefix + S` to create your first snapshot. (Also check that `@resurrect-dir` matches where snapshots actually live.)
+- **Picker looks empty even though `session_*.txt` files exist** — they're probably all numeric-named (`session_0.txt`, `session_1.txt`, …) which are hidden by default. Press `alt-h` to toggle to `all` mode, or rename them with `ctrl-e` from inside the picker.
+- **`prefix + R` does nothing / flashes and closes** — usually means the plugin loaded but tmux hasn't re-sourced after a fresh install. Run `tmux source-file ~/.tmux.conf` (or `prefix + I` if using TPM), or detach and start a new tmux session. If it persists, check that `fzf --version` reports ≥ 0.50 and `tmux -V` reports ≥ 3.2.
+- **Picker error mentions `transform` / unknown action** — your fzf is too old. Upgrade to 0.50+.
 - **Auto-split doesn't run** — it exits silently if another instance is already running for this tmux server. Remove `~/.local/share/tmux/resurrect/.named-split.pid` if you suspect a stale lock.
+
+For deeper debugging, run the picker manually to see errors that tmux's status line might swallow:
+
+```sh
+bash -x ~/.tmux/plugins/tmux-resurrect-named/scripts/restore_named.sh 2>&1 | tail -40
+```
 
 ## Credits & References
 

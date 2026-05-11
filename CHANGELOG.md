@@ -29,6 +29,10 @@ This project follows [Semantic Versioning](https://semver.org/) and the TPM-ecos
   - `last` symlink swap during restore is now signal-safe (trapped on INT/TERM/HUP).
   - `eval echo` in tmux-option expansion replaced with safe tilde expansion.
   - `$SELF` is now quoted inside fzf bind strings so install paths with spaces work.
+- Docs:
+  - New **First run** section walks through reload → save → restore, with the numeric-name gotcha called out.
+  - Requirements section now states the real minimums: tmux ≥ 3.2 (for `display-popup` used by `fzf-tmux -p`) and fzf ≥ 0.50 (for the `transform`/`transform-prompt`/`transform-header` actions the picker uses).
+  - Troubleshooting expanded with the `prefix + R does nothing / flashes and closes` case (usually plugin loaded but tmux not yet re-sourced on a fresh install), an explicit "all snapshots are numeric — press alt-h" hint, and a `bash -x` recipe for deeper debugging.
 
 ### v0.1.0 — 2026-05-10
 
