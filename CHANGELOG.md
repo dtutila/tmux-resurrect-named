@@ -4,6 +4,10 @@ This project follows [Semantic Versioning](https://semver.org/) and the TPM-ecos
 
 ### Unreleased
 
+- **Default filter is now `all`** — numeric-name snapshots (auto-named tmux
+  sessions `0`, `1`, …) are shown in the picker by default. Set the new
+  `@resurrect-named-hide-numeric on` option to restore the old "hide
+  numerics" default. `alt-h` still toggles either way.
 - Session management inside the `prefix + R` fzf picker:
   - `ctrl-d` — delete the highlighted snapshot (with confirmation)
   - `ctrl-e` — rename the highlighted snapshot

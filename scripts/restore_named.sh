@@ -31,7 +31,7 @@ cmd_list() {
     if [ -n "$mode_file" ] && [ -f "$mode_file" ]; then
         filter=$(cat "$mode_file")
     else
-        filter="named"
+        filter="all"
     fi
 
     shopt -s nullglob
@@ -120,7 +120,7 @@ cmd_toggle_filter() {
     local f cur
     f="${RNAMED_STATE:-}"
     [ -z "$f" ] && return 0
-    cur=$(cat "$f" 2>/dev/null || echo named)
+    cur=$(cat "$f" 2>/dev/null || echo all)
     if [ "$cur" = "named" ]; then
         echo all > "$f"
     else
@@ -136,7 +136,7 @@ current_filter() {
     if [ -n "$f" ] && [ -s "$f" ]; then
         cat "$f"
     else
-        echo named
+        echo all
     fi
 }
 
@@ -296,16 +296,24 @@ cmd_picker() {
     RNAMED_PENDING=$(mktemp)
     trap 'rm -f "$RNAMED_STATE" "$RNAMED_PENDING"' EXIT
 
-    # If every snapshot has a numeric (auto-assigned) name, the default 'named'
-    # filter would render an empty picker. Open in 'all' mode and tell the user.
-    local initial_filter="named" any_named=0 f base nm
-    for f in "${files[@]}"; do
-        base=$(basename "$f" .txt); nm="${base#session_}"
-        if ! is_numeric_name "$nm"; then any_named=1; break; fi
-    done
-    if [ "$any_named" = "0" ]; then
-        initial_filter="all"
-        display_message "resurrect-named: only numeric-name snapshots — showing all (alt-h to toggle)"
+    # Initial filter: `all` shows every snapshot; `named` hides numeric-name
+    # (unnamed-tmux-session) snapshots. Default is `all` so picker shows
+    # everything; opt in to hiding numerics via @resurrect-named-hide-numeric.
+    local initial_filter="all"
+    local hide_numeric
+    hide_numeric=$(tmux show-option -gqv "@resurrect-named-hide-numeric" 2>/dev/null || true)
+    if [ "$hide_numeric" = "on" ]; then
+        initial_filter="named"
+        # Avoid opening into an empty picker when every snapshot is numeric.
+        local any_named=0 f base nm
+        for f in "${files[@]}"; do
+            base=$(basename "$f" .txt); nm="${base#session_}"
+            if ! is_numeric_name "$nm"; then any_named=1; break; fi
+        done
+        if [ "$any_named" = "0" ]; then
+            initial_filter="all"
+            display_message "resurrect-named: only numeric-name snapshots — showing all (alt-h to toggle)"
+        fi
     fi
     echo "$initial_filter" > "$RNAMED_STATE"
     : > "$RNAMED_PENDING"

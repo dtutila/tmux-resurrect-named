@@ -68,9 +68,7 @@ After installing on a new machine, walk through this once to confirm everything'
 
 2. **Save your first snapshot.** In any tmux session, press `prefix + S`. The prompt pre-fills with the current session's name; press Enter to accept (or edit, then Enter). The status line should report something like `saved 'main' as 'main' — 2 win, 5 pane(s)`.
 
-3. **Open the picker.** Press `prefix + R`. An `fzf-tmux` popup appears listing your snapshots.
-
-   > **First-time gotcha:** if you started tmux with `tmux` (no session name), tmux auto-names it `0`, `1`, … and the picker hides numeric names by default. Press `alt-h` inside the picker to show them, or save with an explicit name next time.
+3. **Open the picker.** Press `prefix + R`. An `fzf-tmux` popup appears listing your snapshots, including ones for tmux's auto-named numeric sessions (`0`, `1`, …). If you'd rather hide those by default and focus on names you chose, set `@resurrect-named-hide-numeric on` (and toggle back with `alt-h` inside the picker).
 
 If `prefix + R` does nothing, opens an empty popup, or flashes and closes, see [Troubleshooting](#troubleshooting) below.
 
@@ -89,7 +87,7 @@ Inside the `prefix + R` picker:
 | `ctrl-d` | Delete the highlighted snapshot (asks `y/N` first). |
 | `ctrl-e` | Rename the highlighted snapshot (prompts for a new name). |
 | `ctrl-x` | Kill the highlighted live session (asks `y/N` first; no-op if not live). |
-| `alt-h` | Toggle between **named-only** (default) and **all** snapshots. tmux gives unnamed sessions numeric names (`0`, `1`, …); those snapshots are hidden by default to keep the picker focused on names you chose. The prompt shows the current mode. |
+| `alt-h` | Toggle between **all** (default) and **named-only** snapshots. tmux gives unnamed sessions numeric names (`0`, `1`, …); set `@resurrect-named-hide-numeric on` to hide those by default. The prompt shows the current mode. |
 
 A `●` next to a row means a live session with that name exists. The right-side preview pane shows the snapshot's mtime, size, window/pane count, and the first pane's command.
 
@@ -106,6 +104,7 @@ All options are tmux user-options set with `set -g`.
 | `@resurrect-named-auto-split` | _(off)_ | Set to `on` to start the background daemon that splits tmux-resurrect's snapshot into per-session files when it changes. |
 | `@resurrect-named-auto-split-interval` | `30` | Poll interval in seconds for the auto-split daemon. |
 | `@resurrect-named-auto-save-on-switch` | _(off)_ | Set to `on` to automatically save the current session (under its own name) before the picker switches to or restores another. Handy if you want hands-off snapshotting when hopping between sessions. |
+| `@resurrect-named-hide-numeric` | _(off)_ | Set to `on` to hide snapshots whose name is purely numeric (`0`, `1`, …) by default in the picker. tmux auto-assigns those names to unnamed sessions; hiding them focuses the picker on names you chose. `alt-h` still toggles either way. |
 | `@resurrect-named-scripts-dir` | `~/.tmux/plugins/tmux-resurrect/scripts` | Override the path to tmux-resurrect's scripts directory (e.g. if installed via Nix or a non-TPM location). |
 | `@resurrect-dir` | `~/.local/share/tmux/resurrect` | Inherited from tmux-resurrect; this plugin reads/writes from the same directory. |
 
@@ -141,7 +140,7 @@ Without `#tag`, TPM tracks the default branch.
 - **`tmux-resurrect not found at …`** — set `@resurrect-named-scripts-dir` to your install path.
 - **`fzf-tmux not found`** — install `fzf` via your system package manager (`apt`, `dnf`, `pacman`, `brew`, …). If the packaged version is `< 0.50`, install from upstream instead.
 - **Picker shows "no snapshots yet"** — you haven't saved anything yet. Press `prefix + S` to create your first snapshot. (Also check that `@resurrect-dir` matches where snapshots actually live.)
-- **Picker looks empty even though `session_*.txt` files exist** — they're probably all numeric-named (`session_0.txt`, `session_1.txt`, …) which are hidden by default. Press `alt-h` to toggle to `all` mode, or rename them with `ctrl-e` from inside the picker.
+- **Picker looks empty even though `session_*.txt` files exist** — if you set `@resurrect-named-hide-numeric on`, all-numeric names (`session_0.txt`, `session_1.txt`, …) are hidden. Press `alt-h` to toggle to `all` mode, or rename them with `ctrl-e` from inside the picker.
 - **`prefix + R` does nothing / flashes and closes** — usually means the plugin loaded but tmux hasn't re-sourced after a fresh install. Run `tmux source-file ~/.tmux.conf` (or `prefix + I` if using TPM), or detach and start a new tmux session. If it persists, check that `fzf --version` reports ≥ 0.50 and `tmux -V` reports ≥ 3.2.
 - **Picker error mentions `transform` / unknown action** — your fzf is too old. Upgrade to 0.50+.
 - **Auto-split doesn't run** — it exits silently if another instance is already running for this tmux server. Remove `~/.local/share/tmux/resurrect/.named-split.pid` if you suspect a stale lock.
