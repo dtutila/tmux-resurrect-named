@@ -87,7 +87,7 @@ Inside the `prefix + R` picker:
 | `ctrl-d` | Delete the highlighted snapshot (asks `y/N` first). |
 | `ctrl-e` | Rename the highlighted snapshot (prompts for a new name). |
 | `ctrl-x` | Kill the highlighted live session (asks `y/N` first; no-op if not live). |
-| `alt-h` | Toggle between **all** (default) and **named-only** snapshots. tmux gives unnamed sessions numeric names (`0`, `1`, …); set `@resurrect-named-hide-numeric on` to hide those by default. The prompt shows the current mode. |
+| `ctrl-t` / `alt-h` | Toggle between **all** (default) and **named-only** snapshots. tmux gives unnamed sessions numeric names (`0`, `1`, …); set `@resurrect-named-hide-numeric on` to hide those by default. The prompt shows the current mode. `ctrl-t` is the primary binding because `alt-h` requires a terminal that sends Meta/Alt — on some setups (Terminal.app without "Option as Meta", certain SSH+tmux combinations) the alt key never reaches fzf. |
 
 A `●` next to a row means a live session with that name exists. The right-side preview pane shows the snapshot's mtime, size, window/pane count, and the first pane's command.
 

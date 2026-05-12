@@ -7,7 +7,20 @@ This project follows [Semantic Versioning](https://semver.org/) and the TPM-ecos
 - **Default filter is now `all`** — numeric-name snapshots (auto-named tmux
   sessions `0`, `1`, …) are shown in the picker by default. Set the new
   `@resurrect-named-hide-numeric on` option to restore the old "hide
-  numerics" default. `alt-h` still toggles either way.
+  numerics" default. `ctrl-t` / `alt-h` still toggles either way.
+- **Picker bindings made more robust on terminals that swallow keys:**
+  - Added `ctrl-t` as the primary toggle (was `alt-h`-only). `alt-h` still
+    works but only on terminals that actually deliver Meta; ctrl-t works
+    everywhere. Header label reflects ctrl-t.
+  - `ctrl-d` (delete) and `ctrl-x` (kill) no longer route through a
+    `transform`-action indirection — they emit a direct fzf action chain
+    (`execute-silent + transform-prompt + transform-header`) that arms the
+    `[y/N]` confirmation. The transform indirection was unreliable on some
+    fzf builds; the direct chain is the same shape fzf uses everywhere else.
+  - Validation (snapshot-exists for delete; session-live and
+    not-current-session for kill) moved into `cmd_arm`, so invalid actions
+    surface a tmux status message instead of arming a confirmation that
+    would silently do nothing.
 - Session management inside the `prefix + R` fzf picker:
   - `ctrl-d` — delete the highlighted snapshot (with confirmation)
   - `ctrl-e` — rename the highlighted snapshot

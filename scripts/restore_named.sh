@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Pick a named snapshot via fzf and restore it (or switch to it if already running).
 # Self-dispatching: subcommands (--list, --preview, --delete, --rename, --kill,
-# --toggle-filter, --prompt, --header, --d-action, --x-action, --y-action,
-# --n-action, --enter-action, --arm, --confirm-pending, --clear-pending) are
-# used internally by the fzf picker for live management.
+# --toggle-filter, --prompt, --header, --y-action, --n-action, --enter-action,
+# --arm, --confirm-pending, --clear-pending) are used internally by the fzf
+# picker for live management.
 set -euo pipefail
 
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -12,14 +12,16 @@ CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 SELF="$CURRENT_DIR/restore_named.sh"
 
-# Header is rebuilt per-keystroke so the alt-h label always reflects what
+# Header is rebuilt per-keystroke so the toggle label always reflects what
 # pressing it will do *next* (show-all when in named mode, hide-numeric in all).
+# ctrl-t and alt-h are both bound to the toggle; ctrl-t is the primary because
+# alt-key delivery is unreliable on some terminals/tmux setups.
 header_for_filter() {
     local toggle_label
     if [ "${1:-named}" = "named" ]; then
-        toggle_label='alt-h:show-all'
+        toggle_label='ctrl-t:show-all'
     else
-        toggle_label='alt-h:hide-numeric'
+        toggle_label='ctrl-t:hide-numeric'
     fi
     printf 'enter:restore  ctrl-d:del  ctrl-e:rename  ctrl-x:kill  %s' "$toggle_label"
 }
@@ -172,6 +174,33 @@ cmd_arm() {
     local action="${1:-}" name="${2:-}"
     [ -z "$action" ] || [ -z "$name" ] && return 0
     [ -z "${RNAMED_PENDING:-}" ] && return 0
+
+    # Validate before arming so transform-prompt/header only show "[y/N]" for
+    # actions that can actually run. On rejection we display a tmux message
+    # instead — the picker stays in its normal state.
+    case "$action" in
+        delete)
+            local file
+            file=$(named_snapshot_path "$name")
+            if [ ! -f "$file" ]; then
+                display_message "resurrect-named: no snapshot named '$name'"
+                return 0
+            fi
+            ;;
+        kill)
+            if ! is_session_live "$name"; then
+                display_message "resurrect-named: no live session '$name'"
+                return 0
+            fi
+            local cur
+            cur=$(tmux display-message -p '#S' 2>/dev/null || echo "")
+            if [ -n "$cur" ] && [ "$cur" = "$name" ]; then
+                display_message "resurrect-named: refusing to kill current session '$name'"
+                return 0
+            fi
+            ;;
+    esac
+
     printf '%s:%s' "$action" "$name" > "$RNAMED_PENDING"
 }
 
@@ -192,41 +221,9 @@ cmd_confirm_pending() {
     esac
 }
 
-# Transform-action emitters. Output is a fzf action chain (parsed by fzf, not run).
-# y/n/enter dispatch through transform so we can branch on whether a delete/kill
-# is armed without ever unbinding the keys (unbind also removes the *default*
+# y/n/enter dispatch via `transform` so we can branch on whether a delete/kill
+# is armed without ever unbinding the keys (unbind would also drop the *default*
 # action, so e.g. unbind(enter) breaks the primary "press Enter to restore" path).
-cmd_d_action() {
-    local name="${1:-}"
-    [ -z "$name" ] && return 0
-    local file
-    file=$(named_snapshot_path "$name")
-    if [ ! -f "$file" ]; then
-        printf 'transform-header(printf %%s "no snapshot for: %s")' "$name"
-        return 0
-    fi
-    printf 'execute-silent(%s --arm delete %s)+transform-prompt(%s --prompt)+transform-header(%s --header)' \
-        "$SELF" "$name" "$SELF" "$SELF"
-}
-
-cmd_x_action() {
-    local name="${1:-}"
-    [ -z "$name" ] && return 0
-    if ! is_session_live "$name"; then
-        printf 'transform-header(printf %%s "no live session: %s")' "$name"
-        return 0
-    fi
-    local cur
-    cur=$(tmux display-message -p '#S' 2>/dev/null || echo "")
-    if [ -n "$cur" ] && [ "$cur" = "$name" ]; then
-        printf 'transform-header(printf %%s "refusing to kill current session: %s")' "$name"
-        return 0
-    fi
-    printf 'execute-silent(%s --arm kill %s)+transform-prompt(%s --prompt)+transform-header(%s --header)' \
-        "$SELF" "$name" "$SELF" "$SELF"
-}
-
-# y / n / enter dispatch. When a delete/kill is armed, they confirm or cancel.
 # When nothing is armed, y and n type into the search query (default fzf
 # behavior) and Enter accepts (restores the highlighted snapshot).
 cmd_y_action() {
@@ -334,9 +331,10 @@ cmd_picker() {
         --no-multi \
         --preview "'$SELF' --preview {1}" \
         --preview-window=right,40%,wrap \
-        --bind "ctrl-d:transform('$SELF' --d-action {1})" \
-        --bind "ctrl-x:transform('$SELF' --x-action {1})" \
+        --bind "ctrl-d:execute-silent('$SELF' --arm delete {1})+transform-prompt('$SELF' --prompt)+transform-header('$SELF' --header)" \
+        --bind "ctrl-x:execute-silent('$SELF' --arm kill {1})+transform-prompt('$SELF' --prompt)+transform-header('$SELF' --header)" \
         --bind "ctrl-e:execute-silent('$SELF' --clear-pending)+execute('$SELF' --rename {1})+reload('$SELF' --list)+transform-prompt('$SELF' --prompt)+transform-header('$SELF' --header)" \
+        --bind "ctrl-t:execute-silent('$SELF' --toggle-filter)+execute-silent('$SELF' --clear-pending)+reload('$SELF' --list)+transform-prompt('$SELF' --prompt)+transform-header('$SELF' --header)" \
         --bind "alt-h:execute-silent('$SELF' --toggle-filter)+execute-silent('$SELF' --clear-pending)+reload('$SELF' --list)+transform-prompt('$SELF' --prompt)+transform-header('$SELF' --header)" \
         --bind "y:transform('$SELF' --y-action)" \
         --bind "n:transform('$SELF' --n-action)" \
@@ -424,8 +422,6 @@ case "${1:-}" in
     --arm)              cmd_arm "${2:-}" "${3:-}" ;;
     --clear-pending)    cmd_clear_pending ;;
     --confirm-pending)  cmd_confirm_pending ;;
-    --d-action)         cmd_d_action "${2:-}" ;;
-    --x-action)         cmd_x_action "${2:-}" ;;
     --y-action)         cmd_y_action ;;
     --n-action)         cmd_n_action ;;
     --enter-action)     cmd_enter_action ;;
